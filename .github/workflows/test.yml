@@ -30,21 +30,33 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y google-chrome-stable
 
-    - name: Download and serve the application
+    - name: Setup application
       run: |
         mkdir -p app
-        cd app
-        if [ -f "../dist/index.html" ]; then
-          cp -r ../dist/* .
-        else
-          echo "<!DOCTYPE html><html><head><title>Test</title></head><body><h1>Test Page</h1></body></html>" > index.html
+        if [ -f "index.html" ]; then
+          cp index.html app/
         fi
+        if [ -f "index-BUH56GOL.js" ]; then
+          cp index-BUH56GOL.js app/
+        fi
+        if [ -f "index-Dy9zO9yl.css" ]; then
+          cp index-Dy9zO9yl.css app/
+        fi
+        ls -la app/
+
+    - name: Start server
+      run: |
+        cd app
         python3 -m http.server 8000 &
-        sleep 5
+        sleep 3
+        curl -s http://localhost:8000/ | head -n 5
 
     - name: Run tests
       run: |
+        sleep 2
         pytest tests/ -v --tb=short --html=report.html
+      env:
+        PYTHONPATH: ${{ github.workspace }}
 
     - name: Upload test results
       if: always()
@@ -54,3 +66,4 @@ jobs:
         path: |
           report.html
           screenshots/
+          app/
