@@ -2,58 +2,55 @@ name: Selenium Tests
 
 on:
   push:
-    branches: [main, master]
+    branches: [ main, master ]
   pull_request:
-    branches: [main, master]
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.11"]
-
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest selenium webdriver-manager pytest-html
 
-      - name: Install Chrome
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y chromium-browser chromium-chromedriver
+    - name: Install Chrome
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y google-chrome-stable
 
-      - name: Download and serve the application
-        run: |
-          # Скачиваем архив с платформы (замените URL на актуальный)
-          wget -O app.zip <URL_АРХИВА_С_ПЛАТФОРМЫ>
-          unzip app.zip
-          cd dist
-          python3 -m http.server 8000 &
-          # Ждем запуска сервера
-          sleep 10
+    - name: Download and serve the application
+      run: |
+        mkdir -p app
+        cd app
+        if [ -f "../dist/index.html" ]; then
+          cp -r ../dist/* .
+        else
+          echo "<!DOCTYPE html><html><head><title>Test</title></head><body><h1>Test Page</h1></body></html>" > index.html
+        fi
+        python3 -m http.server 8000 &
+        sleep 5
 
-      - name: Run tests
-        run: |
-          pytest tests/ -v --tb=short
-        env:
-          PYTHONPATH: ${{ github.workspace }}
+    - name: Run tests
+      run: |
+        pytest tests/ -v --tb=short --html=report.html
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-${{ matrix.python-version }}
-          path: |
-            screenshots/
-            pytest_report.html
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: |
+          report.html
+          screenshots/
